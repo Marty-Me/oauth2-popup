@@ -1,0 +1,78 @@
+<link rel="import" href="../polymer/polymer-element.html">
+
+<dom-module id="OAuth2-PopUp">
+    <template>
+        <style>
+            :host {
+                display: block;
+            }
+        </style>
+        <button on-click=_openTokenPopup></button>
+    </template>
+
+    <script>
+      class OAuth2PopUp extends Polymer.Element {
+        static get is() {
+          return 'oauth2-popup';
+        }
+
+        static get properties() {
+          return {
+            authorizationUri: {
+              type: String,
+            },
+            redirectUri: {
+              type: String,
+            },
+            clientId: {
+              type: String,
+            },
+            popUpSpecs: {
+              type: String,
+              value: 'width=800, height=800',
+            },
+            scopes: {
+              type: String,
+              value: 'read',
+            },
+          };
+        }
+
+        _parseParams(windowUrl) {
+          const urlHash = windowUrl.hash.substr(1);
+          const urlParams = urlHash.split('&');
+          const paramPairs = urlParams.map((paramPair) => paramPair.split('='));
+          return new Map(paramPairs);
+        }
+
+        _openTokenPopup() {
+          const responseType = 'token';
+          console.log(this.scopes);
+          const popUpWindow = window.open(
+            `http://${this.authorizationUri}?response_type=${responseType}&client_id=${this.clientId}&redirect_uri=http://${this.redirectUri}&scope=${this.scopes}`, "Authorize App",
+            this.popUpSpecs.toString()
+          );
+
+          window.setInterval(() => {
+            try {
+              const popUpWindowHref = popUpWindow.location.href;
+
+              if (popUpWindowHref.indexOf(this.redirectUri.toString()) !== -1) {
+                const popUpWindowUrl = new URL(popUpWindow.location);
+                const paramMap = this._parseParams(popUpWindowUrl);
+
+                this.dispatchEvent(new CustomEvent('tokenreceived', {detail: {paramMap: paramMap}}));
+                popUpWindow.close();
+              }
+            } catch (e) {
+              if (!(e instanceof DOMException || e instanceof TypeError)) {
+                console.log(e);
+              }
+            }
+          }, 500);
+        }
+      }
+
+      window.customElements.define(OAuth2PopUp.is, OAuth2PopUp);
+    </script>
+</dom-module>
