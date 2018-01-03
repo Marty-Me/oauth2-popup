@@ -2,7 +2,7 @@
 
 <dom-module id="OAuth2-PopUp">
   <template>
-    <button on-click=_openTokenPopup>[[text]]</button>
+    <button on-click=_onClickHandler>[[text]]</button>
   </template>
 
   <script>
@@ -33,50 +33,80 @@
           text: {
             type: String,
             value: 'Button',
+          },
+          loggingEnabled: {
+            type: Boolean,
+            value: false
           }
         };
       }
 
-      _openTokenPopup() {
-        console.info("Token Pop-up has been opened.");
-        const responseType = 'token';
+      _onClickHandler() {
+        const tokenPopUp = this._openTokenPopup();
+        this._handleTokenPopUp(tokenPopUp)
+      }
 
-        const popUpWindow = window.open(
-            `http://${this.authorizationUri}?response_type=${responseType}&client_id=${this.clientId}&redirect_uri=http://${this.redirectUri}&scope=${this.scopes}`, "Authorize App",
+      _openTokenPopup() {
+        this._log("Token Pop-up has been opened.", "info");
+
+        return window.open(
+            `http://${this.authorizationUri}?response_type=token&client_id=${this.clientId}&redirect_uri=http://${this.redirectUri}&scope=${this.scopes}`, "Authorize App",
             this.popUpSpecs.toString()
         );
+      }
 
+      _handleTokenPopUp(tokenPopUp) {
         const popUpInterval = window.setInterval(() => {
-
-          console.info("Checking for Pop-up Href.");
-
-          if (popUpWindow.closed) {
+          this._log("Checking if PopUp has been closed.", "info");
+          if (tokenPopUp.closed) {
             clearInterval(popUpInterval);
-            console.warn("Token Pop-up has been closed.");
+            this._log("Token Pop-up has been closed.", "warn");
             return;
           }
 
-          const popUpWindowHref = popUpWindow.location.href;
+          let popUpWindowHref;
+          try {
+            popUpWindowHref = tokenPopUp.location.href;
+          } catch (e) {
+            if (e instanceof DOMException)
+              return;
+            console.error(e);
+          }
+          this._log("Checking if PopUp has reached the redirect page.", "info");
 
           if (popUpWindowHref.indexOf(this.redirectUri.toString()) === -1)
             return;
 
-          const popUpWindowUrl = new URL(popUpWindow.location);
-          const paramMap = this._parseParams(popUpWindowUrl);
+          const tokenPopUpUrl = new URL(tokenPopUp.location);
+          const paramMap = OAuth2PopUp._parseParams(tokenPopUpUrl);
 
           this.dispatchEvent(new CustomEvent('tokenreceived', {detail: {paramMap: paramMap}}));
-
-          popUpWindow.close();
+          tokenPopUp.close();
         }, 500);
       }
 
-      _parseParams(windowUrl) {
+      static _parseParams(windowUrl) {
         const urlHash = windowUrl.hash.substr(1);
         const urlParams = urlHash.split('&');
         const paramPairs = urlParams.map((paramPair) => paramPair.split('='));
         return new Map(paramPairs);
       }
 
+      _log(message, type) {
+        if(this.loggingEnabled){
+          switch(type) {
+            case "info":
+              console.info(message);
+              break;
+            case "warn":
+              console.warn(message);
+              break;
+            case "log":
+              console.log(message);
+              break;
+          }
+        }
+      }
     }
 
     window.customElements.define(OAuth2PopUp.is, OAuth2PopUp);

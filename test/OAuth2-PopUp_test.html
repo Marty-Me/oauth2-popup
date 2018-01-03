@@ -15,13 +15,13 @@
 
     <test-fixture id="BasicTestFixture">
       <template>
-        <OAuth2-PopUp></OAuth2-PopUp>
+        <oauth2-popup authorization-uri="" redirect-uri="" client-id="client"></oauth2-popup>
       </template>
     </test-fixture>
 
     <test-fixture id="ChangedPropertyTestFixture">
       <template>
-        <OAuth2-PopUp prop1="new-prop1"></OAuth2-PopUp>
+        <oauth2-popup text="NotButton"></oauth2-popup>
       </template>
     </test-fixture>
 
@@ -30,21 +30,18 @@
 
         test('instantiating the element with default properties works', () => {
           const element = fixture('BasicTestFixture');
-          assert.equal(element.prop1, 'OAuth2-PopUp');
-          const elementShadowRoot = element.shadowRoot;
-          const elementHeader = elementShadowRoot.querySelector('h2');
-          assert.equal(elementHeader.innerHTML, 'Hello OAuth2-PopUp!');
+          assert.equal(element.text, 'Button');
         });
 
         test('setting a property on the element works', () => {
           // Create a test fixture
           const element = fixture('ChangedPropertyTestFixture');
-          assert.equal(element.prop1, 'new-prop1');
-          const elementShadowRoot = element.shadowRoot;
-          const elementHeader = elementShadowRoot.querySelector('h2');
-          assert.equal(elementHeader.innerHTML, 'Hello new-prop1!');
+          assert.equal(element.text, 'NotButton');
         });
 
+        test('parsing Params from URL works', () => {
+          assert.equal(OAuth2PopUp._parseParams(new URL("http://www.example.com/foo#parameter=true")).get('parameter'), "true");
+        })
       });
     </script>
 
